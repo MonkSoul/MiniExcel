@@ -33,9 +33,9 @@ MiniExcel 簡單、高效避免OOM的.NET處理Excel工具。
 
 請查看 [Release Notes](https://github.com/shps951023/MiniExcel/tree/master/docs)
 
-### TODO
+### Discussions / TODO 
 
-請查看 [Project · todo](https://github.com/shps951023/MiniExcel/projects/1?fullscreen=true)
+請查看 [Discussions](https://github.com/shps951023/MiniExcel/discussions) / [TODO](https://github.com/shps951023/MiniExcel/projects/1?fullscreen=true)
 
 ### 性能測試
 
@@ -353,3 +353,7 @@ foreach(IDictionary<string,object> row = MiniExcel.Query(path))
 ### 參考
 - 讀取邏輯 :  [ExcelDataReader](https://github.com/ExcelDataReader/ExcelDataReader)   
 - API 設計方式 :　[StackExchange/Dapper](https://github.com/StackExchange/Dapper)    
+
+### Contributors :  
+
+![](https://contrib.rocks/image?repo=shps951023/MiniExcel)

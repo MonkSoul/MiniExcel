@@ -31,9 +31,9 @@ You can install the package [from NuGet](https://www.nuget.org/packages/MiniExce
 
 Please Check [Release Notes](https://github.com/shps951023/MiniExcel/tree/master/docs)
 
-### TODO
+### Discussions / TODO 
 
-Please Check [Project · todo](https://github.com/shps951023/MiniExcel/projects/1?fullscreen=true)
+Please Check [Discussions](https://github.com/shps951023/MiniExcel/discussions) / [TODO](https://github.com/shps951023/MiniExcel/projects/1?fullscreen=true)
 
 ### Performance
 
@@ -361,3 +361,7 @@ foreach(IDictionary<string,object> row = MiniExcel.Query(path))
 
 - [ExcelDataReader](https://github.com/ExcelDataReader/ExcelDataReader)   
 - [StackExchange/Dapper](https://github.com/StackExchange/Dapper)    
+
+### Contributors :  
+
+![](https://contrib.rocks/image?repo=shps951023/MiniExcel)
