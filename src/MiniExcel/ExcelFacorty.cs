@@ -3,22 +3,48 @@
     using MiniExcelLibs.OpenXml;
     using System;
     using MiniExcelLibs.Csv;
+    using System.IO;
 
-    /// <summary>
-    /// use statics factory,If want to do OCP we can use a Interface factory to instead of  statics factory
-    /// </summary>
-    internal class ExcelFacorty {
-
-        internal static ExcelProviderBase GetExcelProvider(ExcelType excelType) {
-            return GetExcelProvider(excelType,true);
-        }
-        internal static ExcelProviderBase GetExcelProvider(ExcelType excelType,bool useHeaderRow) {
+    internal class ExcelWriterFactory
+    {
+        internal static IExcelWriterAsync GetProvider(Stream stream,ExcelType excelType)
+        {
             switch (excelType)
             {
                 case ExcelType.CSV:
-                    return new CsvProvider();
+                    return new CsvWriter(stream);
                 case ExcelType.XLSX:
-                    return new ExcelOpenXmlProvider(useHeaderRow);
+                    return new ExcelOpenXmlSheetWriter(stream);
+                default:
+                    throw new NotSupportedException($"Please Issue for me");
+            }
+        }
+    }
+
+    internal class ExcelReaderFactory
+    { 
+        internal static IExcelReaderAsync GetProvider(Stream stream, ExcelType excelType)
+        {
+            switch (excelType)
+            {
+                case ExcelType.CSV:
+                    return new CsvReader(stream);
+                case ExcelType.XLSX:
+                    return new ExcelOpenXmlSheetReader(stream);
+                default:
+                    throw new NotSupportedException($"Please Issue for me");
+            }
+        }
+    }
+
+    internal class ExcelTemplateFactory
+    {
+        internal static IExcelTemplateAsync GetProvider(Stream stream, ExcelType excelType= ExcelType.XLSX)
+        {
+            switch (excelType)
+            {
+                case ExcelType.XLSX:
+                    return new ExcelOpenXmlTemplate(stream);
                 default:
                     throw new NotSupportedException($"Please Issue for me");
             }

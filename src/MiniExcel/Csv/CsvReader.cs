@@ -3,29 +3,33 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace MiniExcelLibs.Csv
 {
-    internal class CsvReader : IExcelReader
+    internal class CsvReader : IExcelReader , IExcelReaderAsync
     {
-        public IEnumerable<IDictionary<string, object>> Query(Stream stream, bool useHeaderRow)
+        private Stream _stream;
+        public CsvReader(Stream stream)
         {
-          
-            var configuration = new CsvConfiguration();
-            using (var reader = configuration.GetStreamReaderFunc(stream))
-            {
-                char[] seperators = { configuration.Seperator };
+            this._stream = stream;
+        }
+        public IEnumerable<IDictionary<string, object>> Query(bool useHeaderRow, string sheetName, string startCell, IConfiguration configuration)
+        {
+            if (startCell != "A1")
+                throw new NotImplementedException("CSV not Implement startCell");
+            var cf = configuration == null ? CsvConfiguration.DefaultConfiguration : (CsvConfiguration)configuration;
 
+            using (var reader = cf.StreamReaderFunc(_stream))
+            {
                 var row = string.Empty;
                 string[] read;
                 var firstRow = true;
                 Dictionary<int, string> headRows = new Dictionary<int, string>();
                 while ((row = reader.ReadLine()) != null)
                 {
-                    read = row.Split(seperators, StringSplitOptions.None);
+                    read = Split(cf, row);
 
                     //header
                     if (useHeaderRow)
@@ -38,7 +42,7 @@ namespace MiniExcelLibs.Csv
                             continue;
                         }
 
-                        var cell = Helpers.GetEmptyExpandoObject(headRows);
+                        var cell = CustomPropertyHelper.GetEmptyExpandoObject(headRows);
                         for (int i = 0; i <= read.Length - 1; i++)
                             cell[headRows[i]] = read[i];
 
@@ -49,57 +53,92 @@ namespace MiniExcelLibs.Csv
 
                     //body
                     {
-                        var cell = Helpers.GetEmptyExpandoObject(read.Length - 1);
+                        var cell = CustomPropertyHelper.GetEmptyExpandoObject(read.Length - 1, 0);
                         for (int i = 0; i <= read.Length - 1; i++)
-                            cell[Helpers.GetAlphabetColumnName(i)] = read[i];
+                            cell[ColumnHelper.GetAlphabetColumnName(i)] = read[i];
                         yield return cell;
                     }
                 }
             }
         }
 
-        public IEnumerable<T> Query<T>(Stream stream) where T : class, new()
+        public IEnumerable<T> Query<T>(string sheetName, string startCell, IConfiguration configuration) where T : class, new()
         {
-            var type = typeof(T);
-            var props = Helpers.GetProperties(type);
-            Dictionary<int, PropertyInfo> idxProps = new Dictionary<int, PropertyInfo>();
-            var configuration = new CsvConfiguration();
-            using (var reader = configuration.GetStreamReaderFunc(stream))
-            {
-                char[] seperators = { configuration.Seperator };
+            var cf = configuration == null ? CsvConfiguration.DefaultConfiguration : (CsvConfiguration)configuration;
 
+            var type = typeof(T);
+
+            Dictionary<int, ExcelCustomPropertyInfo> idxProps = new Dictionary<int, ExcelCustomPropertyInfo>();
+            using (var reader = cf.StreamReaderFunc(_stream))
+            {
                 var row = string.Empty;
                 string[] read;
 
                 //header
                 {
                     row = reader.ReadLine();
-                    read = row.Split(seperators, StringSplitOptions.None);
+                    read = Split(cf, row);
+
+                    var props = CustomPropertyHelper.GetExcelCustomPropertyInfos(type, read);
                     var index = 0;
                     foreach (var v in read)
                     {
-                        var p = props.SingleOrDefault(w => w.Name == v);
+                        var p = props.SingleOrDefault(w => w.ExcelColumnName == v);
                         if (p != null)
-                            idxProps.Add(index,p);
+                            idxProps.Add(index, p);
                         index++;
                     }
                 }
                 {
                     while ((row = reader.ReadLine()) != null)
                     {
-                        read = row.Split(seperators, StringSplitOptions.None);
+                        read = Split(cf, row);
 
                         //body
                         {
-                            var cell = new T();
+                            var v = new T();
+
+                            var rowIndex = 0; //TODO: rowindex = startcell rowindex
                             foreach (var p in idxProps)
-                                p.Value.SetValue(cell, read[p.Key]);
-                            yield return cell;
+                            {
+                                var pInfo = p.Value;
+
+                                {
+
+                                    object newV = null;
+                                    object itemValue = read[p.Key];
+
+                                    if (itemValue == null)
+                                        continue;
+
+                                    newV = TypeHelper.TypeMapping(v, pInfo, newV, itemValue, rowIndex, startCell);
+                                }
+                            }
+
+                            rowIndex++;
+                            yield return v;
                         }
                     }
 
                 }
             }
+        }
+
+        private static string[] Split(CsvConfiguration cf, string row)
+        {
+            return Regex.Split(row, $"[\t{cf.Seperator}](?=(?:[^\"]|\"[^\"]*\")*$)")
+                .Select(s => Regex.Replace(s.Replace("\"\"", "\""), "^\"|\"$", "")).ToArray();
+            //this code from S.O : https://stackoverflow.com/a/11365961/9131476
+        }
+
+        public Task<IEnumerable<IDictionary<string, object>>> QueryAsync(bool UseHeaderRow, string sheetName, string startCell, IConfiguration configuration)
+        {
+            return Task.Run(() => Query(UseHeaderRow, sheetName, startCell, configuration));
+        }
+
+        public Task<IEnumerable<T>> QueryAsync<T>(string sheetName, string startCell, IConfiguration configuration) where T : class, new()
+        {
+            return Task.Run(() => Query<T>(sheetName, startCell, configuration));
         }
     }
 }

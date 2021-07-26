@@ -1,36 +1,58 @@
-﻿/**
- This Class Modified from ExcelDataReader : https://github.com/ExcelDataReader/ExcelDataReader
- **/
-namespace MiniExcelLibs.Utils
+﻿namespace MiniExcelLibs.Utils
 {
     using System.Xml;
 
     internal static class XmlReaderHelper
     {
-	   public static bool ReadFirstContent(XmlReader xmlReader)
-	   {
-		  if (xmlReader.IsEmptyElement)
-		  {
-			 xmlReader.Read();
-			 return false;
-		  }
+        /// <summary>
+        /// Pass <?xml> and <worksheet>
+        /// </summary>
+        /// <param name="reader"></param>
+        public static void PassXmlDeclartionAndWorksheet(this XmlReader reader)
+        {
+            reader.MoveToContent();
+            reader.Read();
+        }
 
-		  xmlReader.MoveToContent();
-		  xmlReader.Read();
-		  return true;
-	   }
+        /// <summary>
+        /// e.g skip row 1 to row 2
+        /// </summary>
+        /// <param name="reader"></param>
+        public static void SkipToNextSameLevelDom(XmlReader reader)
+        {
+            while (!reader.EOF)
+            {
+                if (!XmlReaderHelper.SkipContent(reader))
+                    break;
+            }
+        }
 
-	   public static bool SkipContent(XmlReader xmlReader)
-	   {
-		  if (xmlReader.NodeType == XmlNodeType.EndElement)
-		  {
-			 xmlReader.Read();
-			 return false;
-		  }
+        //Method from ExcelDataReader @MIT License
+        public static bool ReadFirstContent(XmlReader reader)
+        {
+            if (reader.IsEmptyElement)
+            {
+                reader.Read();
+                return false;
+            }
 
-		  xmlReader.Skip();
-		  return true;
-	   }
+            reader.MoveToContent();
+            reader.Read();
+            return true;
+        }
+
+        //Method from ExcelDataReader @MIT License
+        public static bool SkipContent(XmlReader reader)
+        {
+            if (reader.NodeType == XmlNodeType.EndElement)
+            {
+                reader.Read();
+                return false;
+            }
+
+            reader.Skip();
+            return true;
+        }
     }
 
 }

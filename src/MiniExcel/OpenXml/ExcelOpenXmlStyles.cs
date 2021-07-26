@@ -4,33 +4,33 @@
     using MiniExcelLibs.Zip;
     using System;
     using System.Collections.Generic;
-    using System.Xml;
+
     internal class ExcelOpenXmlStyles
     {
-        const string NsSpreadsheetMl = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
-
+        private const string _ns = Config.SpreadsheetmlXmlns;
         private Dictionary<int, StyleRecord> _cellXfs = new Dictionary<int, StyleRecord>();
         private Dictionary<int, StyleRecord> _cellStyleXfs = new Dictionary<int, StyleRecord>();
+        private Dictionary<int, NumberFormatString> _customFormats = new Dictionary<int, NumberFormatString>();
 
         public ExcelOpenXmlStyles(ExcelOpenXmlZip zip)
         {
             using (var Reader = zip.GetXmlReader(@"xl/styles.xml"))
             {
-                if (!Reader.IsStartElement("styleSheet", NsSpreadsheetMl))
+                if (!Reader.IsStartElement("styleSheet", _ns))
                     return;
                 if (!XmlReaderHelper.ReadFirstContent(Reader))
                     return;
                 while (!Reader.EOF)
                 {
-                    if (Reader.IsStartElement("cellXfs", NsSpreadsheetMl))
+                    if (Reader.IsStartElement("cellXfs", _ns))
                     {
                         if (!XmlReaderHelper.ReadFirstContent(Reader))
-                            return;
+                            continue;
 
                         var index = 0;
                         while (!Reader.EOF)
                         {
-                            if (Reader.IsStartElement("xf", NsSpreadsheetMl))
+                            if (Reader.IsStartElement("xf", _ns))
                             {
                                 int.TryParse(Reader.GetAttribute("xfId"), out var xfId);
                                 int.TryParse(Reader.GetAttribute("numFmtId"), out var numFmtId);
@@ -42,15 +42,15 @@
                                 break;
                         }
                     }
-                    else if (Reader.IsStartElement("cellStyleXfs", NsSpreadsheetMl))
+                    else if (Reader.IsStartElement("cellStyleXfs", _ns))
                     {
                         if (!XmlReaderHelper.ReadFirstContent(Reader))
-                            return;
+                            continue;
 
                         var index = 0;
                         while (!Reader.EOF)
                         {
-                            if (Reader.IsStartElement("xf", NsSpreadsheetMl))
+                            if (Reader.IsStartElement("xf", _ns))
                             {
                                 int.TryParse(Reader.GetAttribute("xfId"), out var xfId);
                                 int.TryParse(Reader.GetAttribute("numFmtId"), out var numFmtId);
@@ -61,6 +61,35 @@
                             }
                             else if (!XmlReaderHelper.SkipContent(Reader))
                                 break;
+                        }
+                    }
+                    else if (Reader.IsStartElement("numFmts", _ns))
+                    {
+                        if (!XmlReaderHelper.ReadFirstContent(Reader))
+                            continue;
+
+                        while (!Reader.EOF)
+                        {
+                            if (Reader.IsStartElement("numFmt", _ns))
+                            {
+                                int.TryParse(Reader.GetAttribute("numFmtId"), out var numFmtId);
+                                var formatCode = Reader.GetAttribute("formatCode");
+
+
+                                //TODO: determine the type according to the format
+                                var type = typeof(string);
+                                if(DateTimeHelper.IsDateTimeFormat(formatCode))
+                                {
+                                    type = typeof(DateTime?);
+                                }
+
+                                _customFormats.Add(numFmtId,new NumberFormatString(formatCode, type));
+                                Reader.Skip();
+                            }
+                            else if (!XmlReaderHelper.SkipContent(Reader))
+                            {
+                                break;
+                            }
                         }
                     }
                     else if (!XmlReaderHelper.SkipContent(Reader))
@@ -79,6 +108,10 @@
                 {
                     return numberFormat;
                 }
+                else if (_customFormats.TryGetValue(styleRecord.NumFmtId, out var customNumberFormat))
+                {
+                    return customNumberFormat;
+                }
                 return null;
             }
             return null;
@@ -89,20 +122,29 @@
             var sf = this.GetStyleFormat(index);
             if (sf == null)
                 return value;
-            if (sf?.Type == typeof(DateTime?))
+            if (sf.Type == null)
+                return value;
+
+            if (sf.Type == typeof(DateTime?))
             {
                 if (double.TryParse(value?.ToString(), out var s))
                 {
+                    //TODO: if format like yyyy, it need to convert to double, not return datetime value
+
+
+
+
                     return DateTimeHelper.FromOADate(s);
                 }
             }
-            else if (sf?.Type == typeof(TimeSpan?))
+            else if (sf.Type == typeof(TimeSpan?))
             {
                 if (double.TryParse(value?.ToString(), out var number))
                 {
                     return TimeSpan.FromDays(number);
                 }
             }
+
             return value;
         }
 
@@ -145,17 +187,25 @@
             { 47, new NumberFormatString("mm:ss.0",typeof(TimeSpan?)) },
             { 48, new NumberFormatString("##0.0E+0",typeof(string)) },
             { 49, new NumberFormatString("@",typeof(string)) },
+
+            // issue 222
+            { 58, new NumberFormatString("m/d",typeof(DateTime?)) },
+
+            // custom format start with 176
         };
     }
 
     internal class NumberFormatString
     {
-        public string FormatString { get; }
+        public string FormatCode { get; }
         public Type Type { get; set; }
-        public NumberFormatString(string formatString, Type type)
+        public bool NeedConvertToString { get; }
+
+        public NumberFormatString(string formatCode, Type type,bool needConvertToString=false)
         {
-            FormatString = formatString;
+            FormatCode = formatCode;
             Type = type;
+            NeedConvertToString = needConvertToString;
         }
     }
 

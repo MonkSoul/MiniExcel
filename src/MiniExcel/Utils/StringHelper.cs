@@ -1,62 +1,77 @@
-﻿/**
- This Class Modified from ExcelDataReader : https://github.com/ExcelDataReader/ExcelDataReader
- **/
-namespace MiniExcelLibs.Utils
+﻿namespace MiniExcelLibs.Utils
 {
+    using MiniExcelLibs.OpenXml;
+    using System;
+    using System.Linq;
+    using System.Text;
     using System.Xml;
 
     internal static class StringHelper
     {
-	   public static string ReadStringItem(XmlReader reader)
-	   {
-		  string result = string.Empty;
-		  if (!XmlReaderHelper.ReadFirstContent(reader))
-		  {
-			 return result;
-		  }
+        private const string _ns = Config.SpreadsheetmlXmlns;
+        public static string GetLetter(string content)
+        {
+            //TODO:need to chekc
+            return new String(content.Where(Char.IsLetter).ToArray());
+        }
 
-		  while (!reader.EOF)
-		  {
-			 if (reader.IsStartElement("t", "http://schemas.openxmlformats.org/spreadsheetml/2006/main"))
-			 {
-				// There are multiple <t> in a <si>. Concatenate <t> within an <si>.
-				result += reader.ReadElementContentAsString();
-			 }
-			 else if (reader.IsStartElement("r", "http://schemas.openxmlformats.org/spreadsheetml/2006/main"))
-			 {
-				result += ReadRichTextRun(reader);
-			 }
-			 else if (!XmlReaderHelper.SkipContent(reader))
-			 {
-				break;
-			 }
-		  }
+        public static int GetNumber(string content)
+        {
+            return int.Parse(new String(content.Where(Char.IsNumber).ToArray()));
+        }
 
-		  return result;
-	   }
+        /// <summary>
+        /// Copy&Modify from ExcelDataReader @MIT License
+        /// </summary>
+        public static string ReadStringItem(XmlReader reader)
+        {
+            var result = new StringBuilder();
+            if (!XmlReaderHelper.ReadFirstContent(reader))
+                return string.Empty;
 
-	   private static string ReadRichTextRun(XmlReader reader)
-	   {
-		  string result = string.Empty;
-		  if (!XmlReaderHelper.ReadFirstContent(reader))
-		  {
-			 return result;
-		  }
+            while (!reader.EOF)
+            {
+                if (reader.IsStartElement("t", _ns))
+                {
+                    // There are multiple <t> in a <si>. Concatenate <t> within an <si>.
+                    result.Append(reader.ReadElementContentAsString());
+                }
+                else if (reader.IsStartElement("r", _ns))
+                {
+                    result.Append(ReadRichTextRun(reader));
+                }
+                else if (!XmlReaderHelper.SkipContent(reader))
+                {
+                    break;
+                }
+            }
 
-		  while (!reader.EOF)
-		  {
-			 if (reader.IsStartElement("t", "http://schemas.openxmlformats.org/spreadsheetml/2006/main"))
-			 {
-				result += reader.ReadElementContentAsString();
-			 }
-			 else if (!XmlReaderHelper.SkipContent(reader))
-			 {
-				break;
-			 }
-		  }
+            return result.ToString();
+        }
 
-		  return result;
-	   }
+        /// <summary>
+        /// Copy&Modify from ExcelDataReader @MIT License
+        /// </summary>
+        private static string ReadRichTextRun(XmlReader reader)
+        {
+            var result = new StringBuilder();
+            if (!XmlReaderHelper.ReadFirstContent(reader))
+                return string.Empty;
+
+            while (!reader.EOF)
+            {
+                if (reader.IsStartElement("t", _ns))
+                {
+                    result.Append(reader.ReadElementContentAsString());
+                }
+                else if (!XmlReaderHelper.SkipContent(reader))
+                {
+                    break;
+                }
+            }
+
+            return result.ToString();
+        }
     }
 
 }

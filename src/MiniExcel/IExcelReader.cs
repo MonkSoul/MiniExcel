@@ -1,15 +1,17 @@
 ﻿using System.Collections.Generic;
-using System.IO;
+using System.Threading.Tasks;
 
 namespace MiniExcelLibs
 {
     internal interface IExcelReader
     {
-        IEnumerable<IDictionary<string, object>> Query(Stream stream, bool UseHeaderRow = false);
-        IEnumerable<T> Query<T>(Stream stream) where T : class, new();
+        IEnumerable<IDictionary<string, object>> Query(bool UseHeaderRow, string sheetName,string startCell, IConfiguration configuration);
+        IEnumerable<T> Query<T>(string sheetName, string startCell, IConfiguration configuration) where T : class, new();
     }
 
-    internal interface IExcelWriter {
-        void SaveAs(Stream stream, object value);
+    internal interface IExcelReaderAsync : IExcelReader
+    {
+        Task<IEnumerable<IDictionary<string, object>>> QueryAsync(bool UseHeaderRow, string sheetName, string startCell, IConfiguration configuration);
+        Task<IEnumerable<T>> QueryAsync<T>(string sheetName, string startCell, IConfiguration configuration) where T : class, new();
     }
 }

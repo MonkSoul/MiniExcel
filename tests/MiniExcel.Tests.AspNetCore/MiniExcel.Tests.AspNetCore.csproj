@@ -5,7 +5,20 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MiniExcel" Version="0.0.7-beta" />
+    <Compile Remove="wwwroot\**" />
+    <Content Remove="wwwroot\**" />
+    <EmbeddedResource Remove="wwwroot\**" />
+    <None Remove="wwwroot\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MiniExcel\MiniExcelLibs.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="TestTemplateComplex.xlsx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
